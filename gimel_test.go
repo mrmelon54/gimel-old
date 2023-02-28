@@ -12,7 +12,7 @@ func init() {
 }
 
 func gen(neg bool, d, e int64) Gimel {
-	return Gimel{neg, big.NewInt(d), big.NewInt(e)}.Norm()
+	return G(neg, big.NewInt(d), big.NewInt(e))
 }
 
 func cmp(n bool, d, e int64, n2 bool, d2, e2 int64) int {
@@ -110,21 +110,38 @@ func TestGimel_IsNeg(t *testing.T) {
 func TestGimel_Add(t *testing.T) {
 	assert.Equal(t, gen(false, 1, 10), gen(false, 1, 10).Add(gen(false, 1, 1)))
 	assert.Equal(t, gen(false, 223, 10), gen(false, 123, 10).Add(gen(false, 1, 10)))
+	assert.Equal(t, gen(false, 1, 11), gen(false, 5, 10).Add(gen(false, 5, 10)))
+	assert.Equal(t, gen(false, 5, 10), gen(false, 1, 11).Add(gen(true, 5, 10)))
 }
 
 func TestGimel_Sub(t *testing.T) {
 	assert.Equal(t, gen(false, 1, 10), gen(false, 1, 10).Sub(gen(false, 1, 1)))
+	assert.Equal(t, gen(false, 123, 10), gen(false, 223, 10).Sub(gen(false, 1, 10)))
+	assert.Equal(t, gen(false, 5, 10), gen(false, 1, 11).Sub(gen(false, 5, 10)))
 }
 
 func TestGimel_Mul(t *testing.T) {
+	assert.Equal(t, gen(false, 15, 16), gen(false, 3, 10).Mul(gen(false, 5, 5)))
+	assert.Equal(t, gen(true, 182, 17), gen(false, 7, 10).Mul(gen(true, 26, 6)))
 }
 
 func TestGimel_Div(t *testing.T) {
+	//assert.Equal(t, gen(false, 3, 10), gen(false, 15, 16).Div(gen(false, 5, 5)))
+	//assert.Equal(t, gen(true, 7, 10), gen(false, 182, 17).Div(gen(true, 26, 6)))
+}
+
+func TestGimel_BigInt(t *testing.T) {
+	assert.Equal(t, big.NewInt(1230000), gen(false, 123, 6).BigInt())
+	assert.Equal(t, big.NewInt(-3456000000), gen(true, 3456, 9).BigInt())
+	assert.Equal(t, big.NewInt(0), gen(true, 0, 9).BigInt())
 }
 
 func TestGimel_TextE(t *testing.T) {
 	assert.Equal(t, "1.23e6", gen(false, 123, 6).TextE())
 	assert.Equal(t, "-3.456e15", gen(true, 3456, 15).TextE())
+	assert.Equal(t, "-3e15", gen(true, 3, 15).TextE())
+	assert.Equal(t, "0", gen(false, 0, 15).TextE())
+	assert.Equal(t, "0", gen(true, 0, 15).TextE())
 }
 
 func TestGimel_Text(t *testing.T) {
