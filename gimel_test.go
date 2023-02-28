@@ -126,8 +126,8 @@ func TestGimel_Mul(t *testing.T) {
 }
 
 func TestGimel_Div(t *testing.T) {
-	//assert.Equal(t, gen(false, 3, 10), gen(false, 15, 16).Div(gen(false, 5, 5)))
-	//assert.Equal(t, gen(true, 7, 10), gen(false, 182, 17).Div(gen(true, 26, 6)))
+	assert.Equal(t, gen(false, 3, 10), gen(false, 15, 16).Div(gen(false, 5, 5)))
+	assert.Equal(t, gen(true, 7, 10), gen(false, 182, 17).Div(gen(true, 26, 6)))
 }
 
 func TestGimel_BigInt(t *testing.T) {

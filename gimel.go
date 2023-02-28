@@ -1,16 +1,16 @@
 package gimel
 
 import (
-	"fmt"
 	"math/big"
 	"strings"
 )
 
 var (
-	zeroValue        = big.NewInt(0)
-	oneValue         = big.NewInt(1)
-	tenValue         = big.NewInt(10)
-	defaultPrecision = big.NewInt(100)
+	zeroValue = big.NewInt(0)
+	oneValue  = big.NewInt(1)
+	tenValue  = big.NewInt(10)
+	precision = big.NewInt(100)
+	pow10prec = new(big.Int).Exp(tenValue, precision, nil)
 )
 
 type Gimel struct {
@@ -24,13 +24,14 @@ func G(neg bool, digits, exp *big.Int) Gimel {
 }
 
 func SetGimelPrecision(digits int64) {
-	defaultPrecision = big.NewInt(digits)
+	precision = big.NewInt(digits)
+	pow10prec.Exp(tenValue, precision, nil)
 }
 
 func (g Gimel) normInit() Gimel {
 	gl := len(g.digits.String())
 	var a, b big.Int
-	a.Sub(defaultPrecision, big.NewInt(int64(gl))).Int64()
+	a.Sub(precision, big.NewInt(int64(gl))).Int64()
 	b.Exp(tenValue, &a, nil)
 	g.digits.Mul(g.digits, &b)
 	return g
@@ -48,7 +49,7 @@ func (g Gimel) normShift() Gimel {
 	var a, b big.Int
 
 	// shift the exponent to match the precision
-	a.Sub(defaultPrecision, big.NewInt(int64(gl)))
+	a.Sub(precision, big.NewInt(int64(gl)))
 	g.exp.Sub(g.exp, &a)
 
 	switch a.Sign() {
@@ -145,7 +146,7 @@ func (g Gimel) shiftToLineUpDigits(o Gimel) (d1, d2, exp *big.Int) {
 	m1, m2, swapped := g.maxMin(o)
 	var a big.Int
 	a.Sub(m1.exp, m2.exp)
-	if a.CmpAbs(defaultPrecision) == 1 {
+	if a.CmpAbs(precision) == 1 {
 		return m1.digits, zeroValue, m1.exp
 	}
 
@@ -202,20 +203,21 @@ func (g Gimel) Mul(o Gimel) Gimel {
 	b.Add(g.exp, o.exp)
 
 	// shift the exponent to account for the weird shift of the digits
-	b.Sub(&b, defaultPrecision)
+	b.Sub(&b, precision)
 	b.Add(&b, oneValue)
 	return Gimel{g.neg != o.neg, &a, &b}.normShift()
 }
 
 func (g Gimel) Div(o Gimel) Gimel {
-	// TODO: fix division
-	// it doesn't work due to the weird way I store decimal numbers as integers
-	fmt.Println(g, "/", o)
+	// multiply bigger number by 10^prec to give space for full integer division
 	var a big.Int
-	a.Div(g.digits, o.digits)
+	a.Mul(g.digits, pow10prec)
+	a.Div(&a, o.digits)
+
+	// subtract the exponents
 	var b big.Int
 	b.Sub(g.exp, o.exp)
-	fmt.Println(a, b)
+	b.Sub(&b, oneValue)
 	return Gimel{g.neg != o.neg, &a, &b}.normShift()
 }
 
@@ -224,7 +226,7 @@ func (g Gimel) BigInt() *big.Int {
 		return big.NewInt(0)
 	}
 	var c big.Int
-	c.Sub(g.exp, defaultPrecision)
+	c.Sub(g.exp, precision)
 	c.Add(&c, oneValue)
 	var d big.Int
 	d.Exp(tenValue, &c, nil)
@@ -291,7 +293,7 @@ func (g Gimel) Text(sep rune) string {
 func (g Gimel) writeFullDigits(b *strings.Builder) {
 	b.WriteString(g.digits.String())
 	var c big.Int
-	c.Sub(g.exp, defaultPrecision)
+	c.Sub(g.exp, precision)
 	c.Add(&c, oneValue)
 	for i := new(big.Int); i.Cmp(&c) < 0; i.Add(i, oneValue) {
 		b.WriteByte('0')
