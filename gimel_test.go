@@ -7,12 +7,10 @@ import (
 	"testing"
 )
 
-func init() {
-	SetGimelPrecision(5) // makes tests easier to write
-}
+var prec = big.NewInt(5)
 
 func gen(neg bool, d, e int64) Gimel {
-	return G(neg, big.NewInt(d), big.NewInt(e))
+	return G(neg, big.NewInt(d), big.NewInt(e), prec)
 }
 
 func cmp(n bool, d, e int64, n2 bool, d2, e2 int64) int {
@@ -112,22 +110,26 @@ func TestGimel_Add(t *testing.T) {
 	assert.Equal(t, gen(false, 223, 10), gen(false, 123, 10).Add(gen(false, 1, 10)))
 	assert.Equal(t, gen(false, 1, 11), gen(false, 5, 10).Add(gen(false, 5, 10)))
 	assert.Equal(t, gen(false, 5, 10), gen(false, 1, 11).Add(gen(true, 5, 10)))
+	assert.Equal(t, gen(false, 1, 10), gen(true, 1, 10).Add(gen(false, 2, 10)))
 }
 
 func TestGimel_Sub(t *testing.T) {
 	assert.Equal(t, gen(false, 1, 10), gen(false, 1, 10).Sub(gen(false, 1, 1)))
 	assert.Equal(t, gen(false, 123, 10), gen(false, 223, 10).Sub(gen(false, 1, 10)))
 	assert.Equal(t, gen(false, 5, 10), gen(false, 1, 11).Sub(gen(false, 5, 10)))
+	assert.Equal(t, gen(true, 3, 10), gen(true, 1, 10).Sub(gen(false, 2, 10)))
 }
 
 func TestGimel_Mul(t *testing.T) {
 	assert.Equal(t, gen(false, 15, 16), gen(false, 3, 10).Mul(gen(false, 5, 5)))
 	assert.Equal(t, gen(true, 182, 17), gen(false, 7, 10).Mul(gen(true, 26, 6)))
+	assert.Equal(t, gen(false, 2, 100), gen(false, 1, 100).Mul(gen(false, 2, 0)))
 }
 
 func TestGimel_Div(t *testing.T) {
 	assert.Equal(t, gen(false, 3, 10), gen(false, 15, 16).Div(gen(false, 5, 5)))
 	assert.Equal(t, gen(true, 7, 10), gen(false, 182, 17).Div(gen(true, 26, 6)))
+	assert.Equal(t, gen(false, 1, 100), gen(false, 2, 100).Div(gen(false, 2, 0)))
 }
 
 func TestGimel_BigInt(t *testing.T) {
@@ -149,7 +151,7 @@ func TestGimel_Text(t *testing.T) {
 	assert.Equal(t, "-3456"+strings.Repeat("0", 12), gen(true, 3456, 15).Text(0))
 
 	assert.Equal(t, "1,230,000", gen(false, 123, 6).Text(','))
-	assert.Equal(t, "-3,456"+strings.Repeat(",000", 4), gen(true, 3456, 15).Text(','))
-	assert.Equal(t, "-456"+strings.Repeat(",000", 4), gen(true, 456, 14).Text(','))
-	assert.Equal(t, "45,600"+strings.Repeat(",000", 4), gen(false, 456, 16).Text(','))
+	assert.Equal(t, "-3,456,000,000,000,000", gen(true, 3456, 15).Text(','))
+	assert.Equal(t, "-456,000,000,000,000", gen(true, 456, 14).Text(','))
+	assert.Equal(t, "45,600,000,000,000,000", gen(false, 456, 16).Text(','))
 }

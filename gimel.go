@@ -2,41 +2,72 @@ package gimel
 
 import (
 	"math/big"
-	"strings"
 )
 
 var (
 	zeroValue = big.NewInt(0)
 	oneValue  = big.NewInt(1)
 	tenValue  = big.NewInt(10)
-	precision = big.NewInt(100)
-	pow10prec = new(big.Int).Exp(tenValue, precision, nil)
 )
 
+// Gimel represents a signed fixed precision integer
+// The zero value
 type Gimel struct {
 	neg    bool
 	digits *big.Int
 	exp    *big.Int
+	prec   *big.Int
+	p10p   *big.Int
 }
 
-func G(neg bool, digits, exp *big.Int) Gimel {
-	return Gimel{neg, digits, exp}.normInit()
+// G returns a normalised version of the Gimel struct
+// Gimel{false, 123, 10} will be converted to Gimel{false, 12300, 10} with a precision value of 5
+func G(neg bool, digits, exp, prec *big.Int) Gimel {
+	var p, p2 big.Int
+	p.Set(prec)
+	p2.Exp(tenValue, prec, nil)
+	return Gimel{neg, digits, exp, &p, &p2}.normPrec()
 }
 
-func SetGimelPrecision(digits int64) {
-	precision = big.NewInt(digits)
-	pow10prec.Exp(tenValue, precision, nil)
+// g2 is an internal function to return the Gimel struct with cloned precision values
+func g2(neg bool, digits, exp, prec *big.Int) Gimel {
+	var p, p2 big.Int
+	p.Set(prec)
+	p2.Exp(tenValue, prec, nil)
+	return Gimel{neg, digits, exp, &p, &p2}
 }
 
-func (g Gimel) normInit() Gimel {
+// minBigInt is an internal function to get the minimum big int value
+func minBigInt(a, b *big.Int) *big.Int {
+	if a.Cmp(b) < 0 {
+		return a
+	}
+	return b
+}
+
+// normPrec is an internal function to return the normalised version of the Gimel struct
+// Gimel{false, 123, 10} will be converted to Gimel{false, 12300, 10} with a precision value of 5
+func (g Gimel) normPrec() Gimel {
 	gl := len(g.digits.String())
 	var a, b big.Int
-	a.Sub(precision, big.NewInt(int64(gl))).Int64()
-	b.Exp(tenValue, &a, nil)
-	g.digits.Mul(g.digits, &b)
+	a.Sub(g.prec, big.NewInt(int64(gl))).Int64()
+
+	switch a.Sign() {
+	case 1:
+		// if the current digits are too short then multiply to line up
+		b.Exp(tenValue, &a, nil)
+		g.digits.Mul(g.digits, &b)
+	case -1:
+		// if the current digits are too short then devide to line up
+		a.Abs(&a)
+		b.Exp(tenValue, &a, nil)
+		g.digits.Div(g.digits, &b)
+	}
 	return g
 }
 
+// normShift is an internal function to return the normalised version of the Gimel struct
+// this is equivalent to normPrec but also shifts the exponent the same amount as the digits
 func (g Gimel) normShift() Gimel {
 	// if the sign is negative then set the negative flag and only store absolute values
 	if g.digits.Sign() == -1 {
@@ -49,7 +80,7 @@ func (g Gimel) normShift() Gimel {
 	var a, b big.Int
 
 	// shift the exponent to match the precision
-	a.Sub(precision, big.NewInt(int64(gl)))
+	a.Sub(g.prec, big.NewInt(int64(gl)))
 	g.exp.Sub(g.exp, &a)
 
 	switch a.Sign() {
@@ -66,26 +97,50 @@ func (g Gimel) normShift() Gimel {
 	return g
 }
 
+// Norm returns the normalised version of the Gimel struct
+// this is equivalent to normPrec but also shifts the exponent the same amount as the digits
+func (g Gimel) Norm() Gimel {
+	return g.normShift().Clone()
+}
+
+// Precision returns a new Gimel struct with a different precision value
+// normPrec is called after to retain the normalised Gimel struct
+func (g Gimel) Precision(prec *big.Int) Gimel {
+	g.prec = new(big.Int).Set(prec)
+	g.p10p = new(big.Int).Exp(tenValue, prec, nil)
+	return g.normPrec()
+}
+
+// Clone returns a clone of the Gimel struct
 func (g Gimel) Clone() Gimel {
 	return Gimel{
 		g.neg,
 		(&big.Int{}).Set(g.digits),
 		(&big.Int{}).Set(g.exp),
+		new(big.Int).Set(g.prec),
+		new(big.Int).Set(g.p10p),
 	}
 }
 
+// Abs returns a clone of the Gimel struct with a positive sign
 func (g Gimel) Abs() Gimel {
 	a := g.Clone()
 	a.neg = false
 	return a
 }
 
+// Neg returns a clone of the Gimel struct with an inverted sign
 func (g Gimel) Neg() Gimel {
 	a := g.Clone()
 	a.neg = !g.neg
 	return a
 }
 
+// Cmp returns:
+//
+// -1 if g <  o
+//  0 if g == o
+// +1 if g >  o
 func (g Gimel) Cmp(o Gimel) (r int) {
 	switch {
 	case g == o:
@@ -106,13 +161,25 @@ func (g Gimel) Cmp(o Gimel) (r int) {
 	return
 }
 
-func (g Gimel) Gt(o Gimel) bool  { return g.Cmp(o) == 1 }
+// Gt is an alias for g > o
+func (g Gimel) Gt(o Gimel) bool { return g.Cmp(o) == 1 }
+
+// Gte is an alias for g >= o
 func (g Gimel) Gte(o Gimel) bool { return g.Cmp(o) != -1 }
-func (g Gimel) Lt(o Gimel) bool  { return g.Cmp(o) == -1 }
+
+// Lt is an alias for g < o
+func (g Gimel) Lt(o Gimel) bool { return g.Cmp(o) == -1 }
+
+// Lte is an alias for g <= o
 func (g Gimel) Lte(o Gimel) bool { return g.Cmp(o) != 1 }
-func (g Gimel) Eq(o Gimel) bool  { return g.Cmp(o) == 0 }
+
+// Eq is an alias for g == o
+func (g Gimel) Eq(o Gimel) bool { return g.Cmp(o) == 0 }
+
+// Neq is an alias for g != o
 func (g Gimel) Neq(o Gimel) bool { return g.Cmp(o) != 0 }
 
+// Min returns a clone of the minimum value
 func (g Gimel) Min(o Gimel) Gimel {
 	if g.Lt(o) {
 		return g.Clone()
@@ -121,6 +188,7 @@ func (g Gimel) Min(o Gimel) Gimel {
 	}
 }
 
+// Max returns a clone of the maximum value
 func (g Gimel) Max(o Gimel) Gimel {
 	if g.Gt(o) {
 		return g.Clone()
@@ -138,16 +206,25 @@ func (g Gimel) maxMin(o Gimel) (Gimel, Gimel, bool) {
 	}
 }
 
+// IsPos returns true if the sign is positive
 func (g Gimel) IsPos() bool { return !g.neg }
+
+// IsNeg returns true if the sign is negative
 func (g Gimel) IsNeg() bool { return g.neg }
 
-func (g Gimel) shiftToLineUpDigits(o Gimel) (d1, d2, exp *big.Int) {
+// shiftToLineUpDigits is an internal function to shift the digits to line up for add/subtract operations
+func (g Gimel) shiftToLineUpDigits(o Gimel) (d1, d2, exp, prec *big.Int) {
+	prec = new(big.Int).Set(minBigInt(g.prec, o.prec))
+
 	// find the difference between the exponents in max - min order
 	m1, m2, swapped := g.maxMin(o)
 	var a big.Int
 	a.Sub(m1.exp, m2.exp)
-	if a.CmpAbs(precision) == 1 {
-		return m1.digits, zeroValue, m1.exp
+	if a.CmpAbs(prec) == 1 {
+		d1 = m1.digits
+		d2 = zeroValue
+		exp = m1.exp
+		return
 	}
 
 	// make pow10 multiplier to shift bigger number left to align digits
@@ -179,21 +256,26 @@ func (g Gimel) shiftToLineUpDigits(o Gimel) (d1, d2, exp *big.Int) {
 	return
 }
 
+// Add returns the sum g+o
 func (g Gimel) Add(o Gimel) Gimel {
 	var a big.Int
-	d1, d2, exp := g.shiftToLineUpDigits(o)
+	d1, d2, exp, prec := g.shiftToLineUpDigits(o)
 	if d2.Sign() == 0 {
-		return Gimel{false, d1, exp}.normShift()
+		return g2(false, d1, exp, prec).normShift()
 	}
 	a.Add(d1, d2)
-	return Gimel{false, &a, exp}.normShift()
+	return g2(false, &a, exp, prec).normShift()
 }
 
+// Sub returns the difference g-o
 func (g Gimel) Sub(o Gimel) Gimel {
 	return g.Add(o.Neg()) // yes this works
 }
 
+// Mul returns the product g*o
 func (g Gimel) Mul(o Gimel) Gimel {
+	prec := new(big.Int).Set(minBigInt(g.prec, o.prec))
+
 	// multiply the digits
 	var a big.Int
 	a.Mul(g.digits, o.digits)
@@ -203,30 +285,35 @@ func (g Gimel) Mul(o Gimel) Gimel {
 	b.Add(g.exp, o.exp)
 
 	// shift the exponent to account for the weird shift of the digits
-	b.Sub(&b, precision)
+	b.Sub(&b, prec)
 	b.Add(&b, oneValue)
-	return Gimel{g.neg != o.neg, &a, &b}.normShift()
+	return g2(g.neg != o.neg, &a, &b, prec).normShift()
 }
 
+// Div returns the quotient g/o
 func (g Gimel) Div(o Gimel) Gimel {
+	prec := new(big.Int).Set(minBigInt(g.prec, o.prec))
+	p10p := new(big.Int).Set(minBigInt(g.p10p, o.p10p))
+
 	// multiply bigger number by 10^prec to give space for full integer division
 	var a big.Int
-	a.Mul(g.digits, pow10prec)
+	a.Mul(g.digits, p10p)
 	a.Div(&a, o.digits)
 
 	// subtract the exponents
 	var b big.Int
 	b.Sub(g.exp, o.exp)
 	b.Sub(&b, oneValue)
-	return Gimel{g.neg != o.neg, &a, &b}.normShift()
+	return g2(g.neg != o.neg, &a, &b, prec).normShift()
 }
 
+// BigInt returns the big.Int representing the full Gimel number
 func (g Gimel) BigInt() *big.Int {
 	if g.digits.Sign() == 0 {
 		return big.NewInt(0)
 	}
 	var c big.Int
-	c.Sub(g.exp, precision)
+	c.Sub(g.exp, g.prec)
 	c.Add(&c, oneValue)
 	var d big.Int
 	d.Exp(tenValue, &c, nil)
@@ -235,67 +322,4 @@ func (g Gimel) BigInt() *big.Int {
 		d.Neg(&d)
 	}
 	return &d
-}
-
-// String is just an alias for TextE for the Stringer interface
-func (g Gimel) String() string { return g.TextE() }
-
-func (g Gimel) TextE() string {
-	var b strings.Builder
-	if g.neg {
-		b.WriteByte('-')
-	}
-	a := strings.TrimRight(g.digits.String(), "0")
-	switch len(a) {
-	case 0:
-		return "0" // end early
-	case 1:
-		b.WriteByte(a[0])
-	default:
-		b.WriteByte(a[0])
-		b.WriteByte('.')
-		b.WriteString(a[1:])
-	}
-	b.WriteByte('e')
-	b.WriteString(g.exp.String())
-	return b.String()
-}
-
-func (g Gimel) Text(sep rune) string {
-	var b strings.Builder
-	if g.neg {
-		b.WriteByte('-')
-	}
-
-	if sep == 0 {
-		g.writeFullDigits(&b)
-	} else {
-		var b2 strings.Builder
-		g.writeFullDigits(&b2)
-		a := b2.String()
-		l := len(a)
-
-		// start at digit 0th triple
-		for i := -(3 - l%3); i < l; i += 3 {
-			if i < 0 {
-				b.WriteString(a[0 : i+3])
-			} else {
-				if i != 0 {
-					b.WriteRune(',')
-				}
-				b.WriteString(a[i : i+3])
-			}
-		}
-	}
-	return b.String()
-}
-
-func (g Gimel) writeFullDigits(b *strings.Builder) {
-	b.WriteString(g.digits.String())
-	var c big.Int
-	c.Sub(g.exp, precision)
-	c.Add(&c, oneValue)
-	for i := new(big.Int); i.Cmp(&c) < 0; i.Add(i, oneValue) {
-		b.WriteByte('0')
-	}
 }
