@@ -1,6 +1,7 @@
 package gimel
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -36,10 +37,12 @@ var (
 	}
 	// formatMap contains a map between Format and scannerCallback functions
 	formatMap = map[Format]scannerCallback{
-		Numeric: scanNumeric,
+		Numeric:    scanNumeric,
+		Scientific: scanScientific,
 	}
 
-	errInvalidDecimalDigit = fmt.Errorf("invalid decimal digit")
+	errInvalidDecimalDigit       = fmt.Errorf("invalid decimal digit")
+	errInvalidScientificNotation = fmt.Errorf("invalid scientific notation")
 )
 
 func FromString(s string, f Format, prec *big.Int) (Gimel, bool) {
@@ -97,20 +100,46 @@ func scanDecimalDigit(r io.ByteScanner) (n int, err error) {
 	if ch >= '0' && ch <= '9' {
 		return int(ch - '0'), nil
 	}
+	_ = r.UnreadByte()
 	return 0, errInvalidDecimalDigit
 }
 
-func scanDecimalDigitsLimit(r io.ByteScanner, b, p *big.Int) (err error) {
-	var ch int
-
-	for i := big.NewInt(0); i.Cmp(p) < 0; i.Add(i, oneValue) {
-		if ch, err = scanDecimalDigit(r); err != nil {
-			return err
+func scanDecimalDigitsLimit(r io.ByteScanner, b, p *big.Int) (n *big.Int, err error) {
+	push := b != nil
+	n = big.NewInt(0)
+	if p == nil {
+		for {
+			if err = scanDecimalDigitAppender(r, b, push); err != nil {
+				if errors.Is(err, errInvalidDecimalDigit) {
+					return n, nil
+				}
+				return new(big.Int).Set(zeroValue), err
+			}
+			n.Add(n, oneValue)
 		}
+	} else {
+		for ; n.Cmp(p) < 0; n.Add(n, oneValue) {
+			if err = scanDecimalDigitAppender(r, b, push); err != nil {
+				if errors.Is(err, errInvalidDecimalDigit) {
+					return n, nil
+				}
+				return new(big.Int).Set(zeroValue), err
+			}
+		}
+	}
+	return
+}
+
+func scanDecimalDigitAppender(r io.ByteScanner, b *big.Int, push bool) error {
+	ch, err := scanDecimalDigit(r)
+	if err != nil {
+		return err
+	}
+	if push {
 		b.Mul(b, tenValue)
 		b.Add(b, big.NewInt(int64(ch)))
 	}
-	return
+	return nil
 }
 
 func scanNumeric(r byteRuneScanner, p *big.Int) (*Gimel, error) {
@@ -120,13 +149,46 @@ func scanNumeric(r byteRuneScanner, p *big.Int) (*Gimel, error) {
 	}
 
 	var b big.Int
-	if scanDecimalDigitsLimit(r, &b, p) != nil {
+	_, err = scanDecimalDigitsLimit(r, &b, p)
+	if err != nil {
 		return nil, err
 	}
 
-	return
+	n, err := scanDecimalDigitsLimit(r, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	g := G(neg, &b, n, p)
+	return &g, nil
 }
 
-func scanScientific(r io.RuneScanner, p *big.Int) (*Gimel, error) {
+func scanScientific(r byteRuneScanner, p *big.Int) (*Gimel, error) {
+	neg, err := scanSign(r)
+	if err != nil {
+		return nil, err
+	}
 
+	var b big.Int
+	_, err = scanDecimalDigitsLimit(r, &b, p)
+	if err != nil {
+		return nil, err
+	}
+
+	ch, err := r.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+	if ch != 'e' {
+		return nil, errInvalidScientificNotation
+	}
+
+	var b2 big.Int
+	_, err = scanDecimalDigitsLimit(r, &b, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	g := G(neg, &b, &b2, p)
+	return &g, nil
 }
