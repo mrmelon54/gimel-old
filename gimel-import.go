@@ -45,6 +45,10 @@ var (
 	errInvalidScientificNotation = fmt.Errorf("invalid scientific notation")
 )
 
+func FromBigInt(a *big.Int, prec *big.Int) (Gimel, bool) {
+	return FromString(a.String(), Numeric, prec)
+}
+
 func FromString(s string, f Format, prec *big.Int) (Gimel, bool) {
 	if f == Auto {
 		for _, i := range formatDetect {
