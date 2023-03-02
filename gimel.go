@@ -4,14 +4,25 @@ import (
 	"math/big"
 )
 
-var (
+func strToBigInt(s string) *big.Int {
+	var a big.Int
+	_, ok := a.SetString(s, 10)
+	if !ok {
+		panic("strToBigInt failed")
+	}
+	return &a
+}
+
+var ( // constants
 	zeroValue = big.NewInt(0)
 	oneValue  = big.NewInt(1)
 	tenValue  = big.NewInt(10)
+	// Gimel Constants
+	euler = G(false, strToBigInt("2718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427"), big.NewInt(-100), big.NewInt(100))
+	pi    = G(false, strToBigInt("3141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067"), big.NewInt(-100), big.NewInt(100))
+	ln2   = G(false, strToBigInt("6931471805599453094172321214581765680755001343602552541206800094933936219696947156058633269964186875"), big.NewInt(-100), big.NewInt(100))
 )
 
-// Gimel represents a signed fixed precision integer
-// The zero value
 type Gimel struct {
 	neg    bool
 	digits *big.Int
@@ -139,7 +150,9 @@ func (g Gimel) Neg() Gimel {
 // Cmp returns:
 //
 // -1 if g <  o
-//  0 if g == o
+//
+//	0 if g == o
+//
 // +1 if g >  o
 func (g Gimel) Cmp(o Gimel) (r int) {
 	switch {
@@ -322,4 +335,40 @@ func (g Gimel) BigInt() *big.Int {
 		d.Neg(&d)
 	}
 	return &d
+}
+
+// Ln returns the natural logarithm. (log base e)
+//
+// This uses the Taylor series expansion of ln(x).
+//
+// The precision of the result is the same as the precision of the input,
+// with a max of the precision of Euler's number.
+func (g Gimel) Ln() Gimel {
+	if g.neg {
+		panic("Cannot take ln of negative Gimel number")
+	}
+	// check precision is greater than e
+	var epsilon *big.Int
+	if g.prec.Cmp(euler.prec) == 1 {
+		epsilon = new(big.Int).Set(euler.prec)
+	} else {
+		epsilon = new(big.Int).Set(g.prec)
+	}
+	var (
+		y = new(big.Int).Set(g.digits)
+		x = new(big.Int).Div(new(big.Int).Sub(y, oneValue), new(big.Int).Add(y, oneValue))
+		z = new(big.Int).Mul(x, x)
+		L = new(big.Int).Set(zeroValue)
+	)
+	for k := 1; x.Cmp(epsilon) == 1; k += 2 {
+		t := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Set(2), x), k)
+		L.Add(L, t)
+		x.Mul(x, z)
+	}
+
+	a, ok := FromBigInt(L, epsilon)
+	if !ok {
+		panic("failed to parse big int")
+	}
+	return a
 }
