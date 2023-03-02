@@ -13,14 +13,22 @@ func strToBigInt(s string) *big.Int {
 	return &a
 }
 
-var ( // constants
+const (
+	_EulerDigits = "2718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427"
+	_PiDigits    = "3141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067"
+	_Ln2Digits   = "6931471805599453094172321214581765680755001343602552541206800094933936219696947156058633269964186875"
+)
+
+var (
+	// internal numeric constants
 	zeroValue = big.NewInt(0)
 	oneValue  = big.NewInt(1)
+	twoValue  = big.NewInt(2)
 	tenValue  = big.NewInt(10)
-	// Gimel Constants
-	euler = G(false, strToBigInt("2718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427"), big.NewInt(-100), big.NewInt(100))
-	pi    = G(false, strToBigInt("3141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067"), big.NewInt(-100), big.NewInt(100))
-	ln2   = G(false, strToBigInt("6931471805599453094172321214581765680755001343602552541206800094933936219696947156058633269964186875"), big.NewInt(-100), big.NewInt(100))
+
+	Euler = G(false, strToBigInt(_EulerDigits), big.NewInt(0), big.NewInt(100))
+	Pi    = G(false, strToBigInt(_PiDigits), big.NewInt(0), big.NewInt(100))
+	Ln2   = G(false, strToBigInt(_Ln2Digits), big.NewInt(0), big.NewInt(100))
 )
 
 type Gimel struct {
@@ -347,26 +355,20 @@ func (g Gimel) Ln() Gimel {
 	if g.neg {
 		panic("Cannot take ln of negative Gimel number")
 	}
-	// check precision is greater than e
-	var epsilon *big.Int
-	if g.prec.Cmp(euler.prec) == 1 {
-		epsilon = new(big.Int).Set(euler.prec)
-	} else {
-		epsilon = new(big.Int).Set(g.prec)
-	}
+
 	var (
-		y = new(big.Int).Set(g.digits)
+		y = new(big.Int).Set(g.BigInt())
 		x = new(big.Int).Div(new(big.Int).Sub(y, oneValue), new(big.Int).Add(y, oneValue))
 		z = new(big.Int).Mul(x, x)
 		L = new(big.Int).Set(zeroValue)
 	)
-	for k := 1; x.Cmp(epsilon) == 1; k += 2 {
-		t := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Set(2), x), k)
+	for k := big.NewInt(1); x.Cmp(g.prec) == 1; k.Add(k, twoValue) {
+		t := new(big.Int).Div(new(big.Int).Mul(twoValue, x), k)
 		L.Add(L, t)
 		x.Mul(x, z)
 	}
 
-	a, ok := FromBigInt(L, epsilon)
+	a, ok := FromBigInt(L, g.prec)
 	if !ok {
 		panic("failed to parse big int")
 	}

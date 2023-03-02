@@ -44,9 +44,16 @@ func (g Gimel) Text(sep rune) string {
 		g.writeFullDigits(&b)
 	} else {
 		var b2 strings.Builder
-		g.writeFullDigits(&b2)
+		dec := g.writeFullDigits(&b2)
 		a := b2.String()
-		l := len(a)
+		l := int64(len(a))
+
+		// decimal point check
+		var dec2 int64
+		if dec != nil {
+			dec2 = dec.Int64()
+			l += dec2
+		}
 
 		// start at digit 0th triple
 		for i := -(3 - l%3); i < l; i += 3 {
@@ -59,18 +66,26 @@ func (g Gimel) Text(sep rune) string {
 				b.WriteString(a[i : i+3])
 			}
 		}
+		if dec2 < 0 {
+			b.WriteRune('.')
+			b.WriteString(a[l:])
+		}
 	}
 	return b.String()
 }
 
 // writeFullDigits is an internal function to write the full digits of a Gimel number
 // this is equivalent to running Text(0) but missing the sign
-func (g Gimel) writeFullDigits(b *strings.Builder) {
+func (g Gimel) writeFullDigits(b *strings.Builder) *big.Int {
 	b.WriteString(g.digits.String())
 	var c big.Int
 	c.Sub(g.exp, g.prec)
 	c.Add(&c, oneValue)
+	if c.Sign() == -1 {
+		return &c
+	}
 	for i := new(big.Int); i.Cmp(&c) < 0; i.Add(i, oneValue) {
 		b.WriteByte('0')
 	}
+	return nil
 }

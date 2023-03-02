@@ -17,6 +17,18 @@ func cmp(n bool, d, e int64, n2 bool, d2, e2 int64) int {
 	return gen(n, d, e).Cmp(gen(n2, d2, e2))
 }
 
+func TestGimelConstantsE(t *testing.T) {
+	assert.Equal(t, _EulerDigits[:1]+"."+_EulerDigits[1:]+"e0", Euler.String())
+	assert.Equal(t, _PiDigits[:1]+"."+_PiDigits[1:]+"e0", Pi.String())
+	assert.Equal(t, _Ln2Digits[:1]+"."+_Ln2Digits[1:]+"e0", Ln2.String())
+}
+
+func TestGimelConstantsNum(t *testing.T) {
+	assert.Equal(t, _EulerDigits[:1]+"."+_EulerDigits[1:], Euler.Text(','))
+	assert.Equal(t, _PiDigits[:1]+"."+_PiDigits[1:], Pi.Text(','))
+	assert.Equal(t, _Ln2Digits[:1]+"."+_Ln2Digits[1:], Ln2.Text(','))
+}
+
 func TestGimel_Clone(t *testing.T) {
 	g := gen(false, 1, 2)
 	h := g.Clone()
@@ -154,4 +166,6 @@ func TestGimel_Text(t *testing.T) {
 	assert.Equal(t, "-3,456,000,000,000,000", gen(true, 3456, 15).Text(','))
 	assert.Equal(t, "-456,000,000,000,000", gen(true, 456, 14).Text(','))
 	assert.Equal(t, "45,600,000,000,000,000", gen(false, 456, 16).Text(','))
+
+	assert.Equal(t, "1,234.5", gen(false, 12345, 3).Text(','))
 }
