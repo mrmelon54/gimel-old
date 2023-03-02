@@ -320,6 +320,33 @@ func (g Gimel) Div(o Gimel) Gimel {
 	return g2(g.neg != o.neg, &a, &b, prec).normShift()
 }
 
+// Log10 Returns the natural logarithm. (log base e)
+// This uses the Taylor series expansion of ln(x). The precision of the result is the same as the precision of the input, with a max of the precision of Euler's number.
+func (g Gimel) Ln() Gimel {
+	if g.neg {
+		panic("Cannot take ln of negative Gimel number")
+	}
+	// check precision is greater than e
+	var epsilon *big.Int
+	if g.prec.Cmp(euler.prec) == 1 {
+		epsilon = new(big.Int).Set(euler.prec)
+	} else {
+		epsilon = new(big.Int).Set(g.prec)
+	}
+	var (
+		y = new(big.Int).Set(g.digits)
+		x = new(big.Int).Div(new(big.Int).Sub(y, oneValue), new(big.Int).Add(y, oneValue))
+		z = new(big.Int).Mul(x, x)
+		L = new(big.Int).Set(zeroValue)
+	)
+	for k := 1; x.Cmp(epsilon) == 1; k += 2 {
+		t := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Set(2), x), k)
+		L.Add(L, t)
+		x.Mul(x, z)
+	}
+	return g // TODO: @MrMelon54
+}
+
 // BigInt returns the big.Int representing the full Gimel number
 func (g Gimel) BigInt() *big.Int {
 	if g.digits.Sign() == 0 {
