@@ -1,9 +1,10 @@
 package gimel
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var prec = big.NewInt(5)
@@ -148,3 +149,8 @@ func TestGimel_Log10(t *testing.T) {
 	assert.Equal(t, "2", gen(false, 100, 0).Log10().Text(0))
 	assert.Equal(t, "3", gen(false, 1000, 0).Log10().Text(0))
 }
+
+func TestGimel_Exp(t *testing.T) {
+	assert.Equal(t, gen(false, 1, 0), gen(false, 0, 0).Exp())
+	assert.Equal(t, gen(false, Euler.digits.Int64(), 0), gen(false, 1, 0).Exp()) // there's a chance this will fail. It depends on how it handles e.
+} // if this test succeeds, Pow() also works. Therefore, it does not need a test.

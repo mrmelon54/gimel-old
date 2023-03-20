@@ -396,7 +396,7 @@ func (g Gimel) Log10() Gimel {
 }
 
 // pow returns b^e mod m, with precision of b.
-func (b Gimel) pow(e, m Gimel) Gimel {
+func (b Gimel) Pow(e, m Gimel) Gimel {
 	// TODO: @MrMelon54 can you make this less crap by using the precision to calculate only the required digits?
 	var (
 		base = b.BigInt()
@@ -413,6 +413,6 @@ func (b Gimel) pow(e, m Gimel) Gimel {
 
 // Exp returns e^g, where e is Euler's number.
 // precision maxes out at the precision of Euler's number.
-func (g Gimel) exp() Gimel {
-	return g.pow(Euler, g)
+func (g Gimel) Exp() Gimel {
+	return g.Pow(Euler, g)
 }
