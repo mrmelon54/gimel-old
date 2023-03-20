@@ -30,6 +30,7 @@ var (
 	zeroValueF = big.NewFloat(0)
 	oneValueF  = big.NewFloat(1)
 	twoValueF  = big.NewFloat(2)
+	tenValueF  = big.NewFloat(10)
 
 	Euler = G(false, strToBigInt(_EulerDigits), big.NewInt(0), big.NewInt(100))
 	Pi    = G(false, strToBigInt(_PiDigits), big.NewInt(0), big.NewInt(100))
@@ -349,32 +350,40 @@ func (g Gimel) Ln() Gimel {
 	fmt.Println("g:", g.String())
 	fmt.Println("g:", g.Text(0))
 
-	var (
-		y = new(big.Float).SetInt(g.BigInt())
-		x = new(big.Float).Quo(new(big.Float).Sub(y, oneValueF), new(big.Float).Add(y, oneValueF))
-		z = new(big.Float).Mul(x, x)
-		L = new(big.Float).Set(zeroValueF)
-		N = new(big.Float).SetInt(g.prec)
-	)
+	var y, x, z, L, N big.Float
+	y.SetInt(g.BigInt())
+	x.Quo(new(big.Float).Sub(&y, oneValueF), new(big.Float).Add(&y, oneValueF))
+	z.Mul(&x, &x)
+	L.Set(zeroValueF)
 
-	fmt.Printf("y: %s, x: %s, z: %s, L: %s, N: %s\n", y, x, z, L, N)
-	fmt.Println(x.Cmp(N))
-
-	for k := big.NewFloat(1); x.Cmp(N) == 1; k.Add(k, twoValueF) {
-		t := new(big.Float).Quo(new(big.Float).Mul(twoValueF, x), k)
-		L = L.Add(L, t)
-		x = x.Mul(x, z)
-		//fmt.Printf("t: %s, L: %s, x: %s, z: %s, N: %s\n", t, L, x, z, N)
+	// calculate value of epsilon smaller than the precision
+	{
+		var a big.Int
+		a.Set(g.prec)
+		a.Add(&a, twoValue)
+		b := big.NewFloat(1)
+		if a.Sign() != 0 {
+			for i := big.NewInt(0); i.Cmp(&a) < 0; i.Add(i, oneValue) {
+				b.Quo(b, tenValueF)
+			}
+		}
+		N.Set(b)
 	}
 
-	fmt.Println(L)
+	for k := big.NewFloat(1); x.Cmp(&N) > 0; k.Add(k, twoValueF) {
+		t := new(big.Float).Quo(new(big.Float).Mul(twoValueF, &x), k)
+		L.Add(&L, t)
+		x.Mul(&x, &z)
+	}
 
 	var M big.Int
 	L.Int(&M)
+	fmt.Println(M.String())
 	a, ok := FromBigInt(&M, g.prec)
 	if !ok {
 		panic("failed to parse big int")
 	}
+	fmt.Println(a.String())
 	return a
 }
 

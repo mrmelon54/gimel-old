@@ -1,6 +1,7 @@
 package gimel
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
@@ -144,7 +145,10 @@ func TestGimel_Div(t *testing.T) {
 }
 
 func TestGimel_Log10(t *testing.T) {
+	fmt.Println("==================================")
 	assert.Equal(t, "1", gen(false, 10, 0).Log10().Text(0))
+	fmt.Println("==================================")
 	assert.Equal(t, "2", gen(false, 100, 0).Log10().Text(0))
+	fmt.Println("==================================")
 	assert.Equal(t, "3", gen(false, 1000, 0).Log10().Text(0))
 }

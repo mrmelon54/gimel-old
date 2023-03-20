@@ -1,7 +1,6 @@
 package gimel
 
 import (
-	"fmt"
 	"math/big"
 	"strings"
 )
@@ -99,11 +98,7 @@ func (g Gimel) writeFullDigits(b *strings.Builder) *big.Int {
 	c.Sub(g.exp, g.prec)
 	c.Add(&c, oneValue)
 	if c.Sign() == -1 {
-		d := g.digits.String()
-		for i := new(big.Int); i.Cmp(&c) > 0; i.Add(i, oneValue) {
-
-		}
-		fmt.Println("-1: D:", g.digits.String())
+		b.WriteString(g.digits.String())
 		return &c
 	}
 	b.WriteString(g.digits.String())
