@@ -1,9 +1,27 @@
 package gimel
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 )
+
+// BigInt returns the big.Int representing the full Gimel number
+func (g Gimel) BigInt() *big.Int {
+	if g.digits.Sign() == 0 {
+		return big.NewInt(0)
+	}
+	var c big.Int
+	c.Sub(g.exp, g.prec)
+	c.Add(&c, oneValue)
+	var d big.Int
+	d.Exp(tenValue, &c, nil)
+	d.Mul(&d, g.digits)
+	if g.neg {
+		d.Neg(&d)
+	}
+	return &d
+}
 
 // String is just an alias for TextE for the Stringer interface
 func (g Gimel) String() string { return g.TextE() }
@@ -77,13 +95,18 @@ func (g Gimel) Text(sep rune) string {
 // writeFullDigits is an internal function to write the full digits of a Gimel number
 // this is equivalent to running Text(0) but missing the sign
 func (g Gimel) writeFullDigits(b *strings.Builder) *big.Int {
-	b.WriteString(g.digits.String())
 	var c big.Int
 	c.Sub(g.exp, g.prec)
 	c.Add(&c, oneValue)
 	if c.Sign() == -1 {
+		d := g.digits.String()
+		for i := new(big.Int); i.Cmp(&c) > 0; i.Add(i, oneValue) {
+
+		}
+		fmt.Println("-1: D:", g.digits.String())
 		return &c
 	}
+	b.WriteString(g.digits.String())
 	for i := new(big.Int); i.Cmp(&c) < 0; i.Add(i, oneValue) {
 		b.WriteByte('0')
 	}

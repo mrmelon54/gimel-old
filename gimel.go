@@ -1,6 +1,7 @@
 package gimel
 
 import (
+	"fmt"
 	"math/big"
 )
 
@@ -25,6 +26,10 @@ var (
 	oneValue  = big.NewInt(1)
 	twoValue  = big.NewInt(2)
 	tenValue  = big.NewInt(10)
+
+	zeroValueF = big.NewFloat(0)
+	oneValueF  = big.NewFloat(1)
+	twoValueF  = big.NewFloat(2)
 
 	Euler = G(false, strToBigInt(_EulerDigits), big.NewInt(0), big.NewInt(100))
 	Pi    = G(false, strToBigInt(_PiDigits), big.NewInt(0), big.NewInt(100))
@@ -328,49 +333,64 @@ func (g Gimel) Div(o Gimel) Gimel {
 	return g2(g.neg != o.neg, &a, &b, prec).normShift()
 }
 
-// BigInt returns the big.Int representing the full Gimel number
-func (g Gimel) BigInt() *big.Int {
-	if g.digits.Sign() == 0 {
-		return big.NewInt(0)
-	}
-	var c big.Int
-	c.Sub(g.exp, g.prec)
-	c.Add(&c, oneValue)
-	var d big.Int
-	d.Exp(tenValue, &c, nil)
-	d.Mul(&d, g.digits)
-	if g.neg {
-		d.Neg(&d)
-	}
-	return &d
-}
-
 // Ln returns the natural logarithm. (log base e)
 //
 // This uses the Taylor series expansion of ln(x).
 //
 // The precision of the result is the same as the precision of the input,
 // with a max of the precision of Euler's number.
+//
+// https://stackoverflow.com/questions/27179674/examples-of-log-algorithm-using-arbitrary-precision-maths
 func (g Gimel) Ln() Gimel {
 	if g.neg {
 		panic("Cannot take ln of negative Gimel number")
 	}
 
+	fmt.Println("g:", g.String())
+	fmt.Println("g:", g.Text(0))
+
 	var (
-		y = new(big.Int).Set(g.BigInt())
-		x = new(big.Int).Div(new(big.Int).Sub(y, oneValue), new(big.Int).Add(y, oneValue))
-		z = new(big.Int).Mul(x, x)
-		L = new(big.Int).Set(zeroValue)
+		y = new(big.Float).SetInt(g.BigInt())
+		x = new(big.Float).Quo(new(big.Float).Sub(y, oneValueF), new(big.Float).Add(y, oneValueF))
+		z = new(big.Float).Mul(x, x)
+		L = new(big.Float).Set(zeroValueF)
+		N = new(big.Float).SetInt(g.prec)
 	)
-	for k := big.NewInt(1); x.Cmp(g.prec) == 1; k.Add(k, twoValue) {
-		t := new(big.Int).Div(new(big.Int).Mul(twoValue, x), k)
-		L.Add(L, t)
-		x.Mul(x, z)
+
+	fmt.Printf("y: %s, x: %s, z: %s, L: %s, N: %s\n", y, x, z, L, N)
+	fmt.Println(x.Cmp(N))
+
+	for k := big.NewFloat(1); x.Cmp(N) == 1; k.Add(k, twoValueF) {
+		t := new(big.Float).Quo(new(big.Float).Mul(twoValueF, x), k)
+		L = L.Add(L, t)
+		x = x.Mul(x, z)
+		//fmt.Printf("t: %s, L: %s, x: %s, z: %s, N: %s\n", t, L, x, z, N)
 	}
 
-	a, ok := FromBigInt(L, g.prec)
+	fmt.Println(L)
+
+	var M big.Int
+	L.Int(&M)
+	a, ok := FromBigInt(&M, g.prec)
 	if !ok {
 		panic("failed to parse big int")
 	}
 	return a
+}
+
+// Log returns the logarithm using a base.
+//
+// This uses ln(g) / ln(base) internally
+func (g Gimel) Log(base Gimel) Gimel {
+	if g.neg {
+		panic("Cannot take log of negative Gimel number")
+	}
+	fmt.Println(g.Ln())
+	fmt.Println(base.Ln())
+	return g.Ln().Div(base.Ln())
+}
+
+// Log10 returns the logarithm with base 10. Alias for Log(10)
+func (g Gimel) Log10() Gimel {
+	return g.Log(G(false, big.NewInt(1), big.NewInt(1), g.prec))
 }

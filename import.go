@@ -45,10 +45,13 @@ var (
 	errInvalidScientificNotation = fmt.Errorf("invalid scientific notation")
 )
 
+// FromBigInt returns the Gimel number from a big.Int with a precision
 func FromBigInt(a *big.Int, prec *big.Int) (Gimel, bool) {
+	fmt.Println(a.String())
 	return FromString(a.String(), Numeric, prec)
 }
 
+// FromString returns the Gimal number from a string, Format and precision
 func FromString(s string, f Format, prec *big.Int) (Gimel, bool) {
 	if f == Auto {
 		for _, i := range formatDetect {
@@ -114,7 +117,7 @@ func scanDecimalDigitsLimit(r io.ByteScanner, b, p *big.Int) (n *big.Int, err er
 	if p == nil {
 		for {
 			if err = scanDecimalDigitAppender(r, b, push); err != nil {
-				if errors.Is(err, errInvalidDecimalDigit) {
+				if errors.Is(err, errInvalidDecimalDigit) || errors.Is(err, io.EOF) {
 					return n, nil
 				}
 				return new(big.Int).Set(zeroValue), err
@@ -124,7 +127,7 @@ func scanDecimalDigitsLimit(r io.ByteScanner, b, p *big.Int) (n *big.Int, err er
 	} else {
 		for ; n.Cmp(p) < 0; n.Add(n, oneValue) {
 			if err = scanDecimalDigitAppender(r, b, push); err != nil {
-				if errors.Is(err, errInvalidDecimalDigit) {
+				if errors.Is(err, errInvalidDecimalDigit) || errors.Is(err, io.EOF) {
 					return n, nil
 				}
 				return new(big.Int).Set(zeroValue), err
