@@ -144,6 +144,10 @@ func TestGimel_Div(t *testing.T) {
 	assert.Equal(t, gen(false, 1, 100), gen(false, 2, 100).Div(gen(false, 2, 0)))
 }
 
+func TestGimel_Ln(t *testing.T) {
+	assert.Equal(t, "0", gen(false, 1, 0).Ln().Text(0))
+}
+
 func TestGimel_Log10(t *testing.T) {
 	fmt.Println("==================================")
 	assert.Equal(t, "1", gen(false, 10, 0).Log10().Text(0))
