@@ -3,6 +3,7 @@ package gimel
 import (
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 func strToBigInt(s string) *big.Int {
@@ -393,4 +394,52 @@ func (g Gimel) Log(base Gimel) Gimel {
 // Log10 returns the logarithm with base 10. Alias for Log(10)
 func (g Gimel) Log10() Gimel {
 	return g.Log(G(false, big.NewInt(1), big.NewInt(1), g.prec))
+}
+
+// IsInt returns true if the number is an integer (non-decimal)
+func (g Gimel) IsInt() bool {
+	var l big.Int
+	l.Sub(g.exp, g.prec)
+	l.Add(&l, oneValue)
+	// fast check for large exponent values
+	if l.Sign() != -1 {
+		return true
+	}
+
+	// manual digits check required
+	ds := g.digits.String()
+	dl := len(strings.TrimRight(ds, "0"))
+	l.Add(&l, g.prec)
+	if l.Cmp(big.NewInt(int64(dl))) == 0 {
+		return true
+	}
+	return false
+}
+
+// IsEven returns true if the number is even
+func (g Gimel) IsEven() bool {
+	var l big.Int
+	l.Sub(g.exp, g.prec)
+	l.Add(&l, oneValue)
+	switch l.Sign() {
+	case 0:
+		return g.digits.Bit(0) == 1
+	case 1:
+		return true
+	}
+
+	// manual digits check required
+	l.Sub(&l, oneValue)
+	l.Abs(&l)
+	l.Sub(g.prec, &l)
+	ds := strings.NewReader(g.digits.String())
+	for ; l.Sign() == 1; l.Sub(&l, oneValue) {
+		_, _ = ds.ReadByte()
+	}
+	b, _ := ds.ReadByte()
+	switch b {
+	case '0', '2', '4', '6', '8':
+		return true
+	}
+	return false
 }

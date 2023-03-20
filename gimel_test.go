@@ -148,3 +148,27 @@ func TestGimel_Log10(t *testing.T) {
 	assert.Equal(t, "2", gen(false, 100, 0).Log10().Text(0))
 	assert.Equal(t, "3", gen(false, 1000, 0).Log10().Text(0))
 }
+
+func TestGimel_IsInt(t *testing.T) {
+	assert.True(t, gen(false, 15, 16).IsInt())
+	assert.True(t, gen(false, 15, 1).IsInt())
+	assert.False(t, gen(false, 15, 0).IsInt())
+	assert.True(t, gen(false, 10, 0).IsInt())
+	assert.True(t, gen(false, 1000, 0).IsInt())
+	assert.True(t, gen(false, 1230, 2).IsInt())
+	assert.False(t, gen(false, 1230, 0).IsInt())
+	assert.False(t, gen(false, 1234, 2).IsInt())
+	assert.True(t, gen(false, 1234, 3).IsInt())
+	assert.False(t, gen(false, 11, 0).IsInt())
+}
+
+func TestGimel_IsEven(t *testing.T) {
+	assert.True(t, gen(false, 15, 16).IsEven())
+	assert.True(t, gen(false, 15, 2).IsEven())
+	assert.False(t, gen(false, 15, 1).IsEven())
+	assert.False(t, gen(false, 15, 0).IsEven())
+	assert.True(t, gen(false, 12, 16).IsEven())
+	assert.True(t, gen(false, 12, 2).IsEven())
+	assert.True(t, gen(false, 12, 1).IsEven())
+	assert.False(t, gen(false, 12, 0).IsEven())
+}
