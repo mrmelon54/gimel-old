@@ -394,3 +394,25 @@ func (g Gimel) Log(base Gimel) Gimel {
 func (g Gimel) Log10() Gimel {
 	return g.Log(G(false, big.NewInt(1), big.NewInt(1), g.prec))
 }
+
+// pow returns b^e mod m, with precision of b.
+func (b Gimel) pow(e, m Gimel) Gimel {
+	// TODO: @MrMelon54 can you make this less crap by using the precision to calculate only the required digits?
+	var (
+		base = b.BigInt()
+		exp  = e.BigInt()
+		mod  = m.BigInt()
+	)
+	result := big.NewInt(1).Exp(base, exp, mod)
+	a, ok := FromBigInt(result, b.prec)
+	if !ok {
+		panic("failed to parse big int")
+	}
+	return a
+}
+
+// Exp returns e^g, where e is Euler's number.
+// precision maxes out at the precision of Euler's number.
+func (g Gimel) exp() Gimel {
+	return g.pow(Euler, g)
+}
