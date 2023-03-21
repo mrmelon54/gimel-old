@@ -443,3 +443,21 @@ func (g Gimel) IsEven() bool {
 	}
 	return false
 }
+
+// Pow returns g^e mod m, with precision of g.
+func (g Gimel) Pow(e Gimel, m *Gimel) Gimel {
+	var result, mod *big.Int
+	if m != nil {
+		mod = m.BigInt()
+	}
+	result.Exp(g.BigInt(), e.BigInt(), mod)
+	a, ok := FromBigInt(result, g.prec)
+	if !ok {
+		panic("failed to parse big int")
+	}
+	return a
+}
+
+// Exp returns e^g where e is Euler's number
+// precision maxes out at the precision of Euler's number.
+func (g Gimel) Exp() Gimel { return Euler.Pow(g, nil) }

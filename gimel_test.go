@@ -172,3 +172,8 @@ func TestGimel_IsEven(t *testing.T) {
 	assert.True(t, gen(false, 12, 1).IsEven())
 	assert.False(t, gen(false, 12, 0).IsEven())
 }
+
+func TestGimel_Exp(t *testing.T) {
+	assert.Equal(t, gen(false, 1, 0), gen(false, 0, 0).Exp())
+	assert.Equal(t, Euler, gen(false, 1, 0).Exp())
+}
