@@ -8,9 +8,20 @@ import (
 )
 
 func TestGimel_BigInt(t *testing.T) {
-	assert.Equal(t, big.NewInt(1230000), gen(false, 123, 6).BigInt())
-	assert.Equal(t, big.NewInt(-3456000000), gen(true, 3456, 9).BigInt())
-	assert.Equal(t, big.NewInt(0), gen(true, 0, 9).BigInt())
+	assert.Equal(t, "1230000", gen(false, 123, 6).BigInt().String())
+	assert.Equal(t, "-3456000000", gen(true, 3456, 9).BigInt().String())
+	assert.Equal(t, "0", gen(true, 0, 9).BigInt().String())
+	assert.Equal(t, "1", gen(false, 12345, 0).BigInt().String())
+	assert.Equal(t, "123", gen(false, 123, 2).BigInt().String())
+}
+
+func TestGimel_BigFloat(t *testing.T) {
+	assert.Equal(t, "1230000", gen(false, 123, 6).BigFloat().String())
+	assert.Equal(t, "-3456000000", gen(true, 3456, 9).BigFloat().String())
+	assert.Equal(t, "0", gen(true, 0, 9).BigFloat().String())
+	assert.Equal(t, "1", gen(false, 12345, 0).BigFloat().String())
+	assert.Equal(t, "123.45", gen(false, 12345, 2).BigFloat().String())
+	assert.Equal(t, "123.45", gen(false, 12345, 2).Precision(big.NewInt(100)).BigFloat().String())
 }
 
 func TestGimel_TextE(t *testing.T) {

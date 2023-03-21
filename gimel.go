@@ -74,18 +74,18 @@ func minBigInt(a, b *big.Int) *big.Int {
 // Gimel{false, 123, 10} will be converted to Gimel{false, 12300, 10} with a precision value of 5
 func (g Gimel) normPrec() Gimel {
 	gl := len(g.digits.String())
-	var a, b big.Int
-	a.Sub(g.prec, big.NewInt(int64(gl))).Int64()
+	var a, a2, b big.Int
+	a.Sub(g.prec, big.NewInt(int64(gl)))
+	a2.Abs(&a)
+	a2.Exp(tenValue, &a2, nil)
+	fmt.Println(a2)
 
 	switch a.Sign() {
 	case 1:
 		// if the current digits are too short then multiply to line up
-		b.Exp(tenValue, &a, nil)
 		g.digits.Mul(g.digits, &b)
 	case -1:
-		// if the current digits are too short then devide to line up
-		a.Abs(&a)
-		b.Exp(tenValue, &a, nil)
+		// if the current digits are too short then divide to line up
 		g.digits.Div(g.digits, &b)
 	}
 	return g
@@ -351,30 +351,35 @@ func (g Gimel) Ln() Gimel {
 	fmt.Println("g:", g.Text(0))
 
 	var y, x, z, L, N big.Float
-	y.SetInt(g.BigInt())
+	y.Set(g.BigFloat())
 	x.Quo(new(big.Float).Sub(&y, oneValueF), new(big.Float).Add(&y, oneValueF))
 	z.Mul(&x, &x)
 	L.Set(zeroValueF)
 
-	// calculate value of epsilon smaller than the precision
 	{
-		var a big.Int
+		// calculate value of epsilon smaller than the precision
+		var a, b big.Int
 		a.Set(g.prec)
 		a.Add(&a, twoValue)
-		b := big.NewFloat(1)
-		if a.Sign() != 0 {
-			for i := big.NewInt(0); i.Cmp(&a) < 0; i.Add(i, oneValue) {
-				b.Quo(b, tenValueF)
-			}
-		}
-		N.Set(b)
+		b.Exp(tenValue, &a, nil)
+
+		var c big.Float
+		c.SetInt(&b)
+		d := big.NewFloat(1)
+		d.Quo(d, &c)
+		N.Set(d)
 	}
+	fmt.Println("a:", g.String())
+	fmt.Println("b:", g.BigFloat())
+	fmt.Println("y:", y.String(), "x:", x.String(), "z:", z.String(), "L:", L.String(), "N:", N.String())
 
 	for k := big.NewFloat(1); x.Cmp(&N) > 0; k.Add(k, twoValueF) {
 		t := new(big.Float).Quo(new(big.Float).Mul(twoValueF, &x), k)
 		L.Add(&L, t)
 		x.Mul(&x, &z)
 	}
+
+	fmt.Println("L:", L.String())
 
 	var M big.Int
 	L.Int(&M)
@@ -383,7 +388,7 @@ func (g Gimel) Ln() Gimel {
 	if !ok {
 		panic("failed to parse big int")
 	}
-	fmt.Println(a.String())
+	fmt.Println("a:", a.String())
 	return a
 }
 

@@ -3,6 +3,7 @@ package gimel
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"math/big"
 	"testing"
 )
@@ -102,9 +103,9 @@ func TestGimel_Min(t *testing.T) {
 }
 
 func TestGimel_Max(t *testing.T) {
-	assert.Equal(t, gen(false, 1, 2), gen(false, 1, 1).Max(gen(false, 1, 2)))
-	assert.Equal(t, gen(false, 1, 2), gen(false, 1, 2).Max(gen(false, 1, 1)))
-	assert.Equal(t, gen(false, 1, 1), gen(false, 1, 1).Max(gen(false, 1, 1)))
+	assert.Equal(t, "1e2", gen(false, 1, 1).Max(gen(false, 1, 2)).String())
+	assert.Equal(t, "1e2", gen(false, 1, 2).Max(gen(false, 1, 1)).String())
+	assert.Equal(t, "1e1", gen(false, 1, 1).Max(gen(false, 1, 1)).String())
 }
 
 func TestGimel_IsPos(t *testing.T) {
@@ -144,15 +145,35 @@ func TestGimel_Div(t *testing.T) {
 	assert.Equal(t, gen(false, 1, 100), gen(false, 2, 100).Div(gen(false, 2, 0)))
 }
 
+func TestFloatLn(t *testing.T) {
+	var (
+		y float64 = 1
+		x         = (y - 1) / (y + 1)
+		z         = x * x
+		L float64
+		N = math.Pow10(-32)
+	)
+
+	for k := 1; x > N; k += 2 {
+		t := (2 * x) / float64(k)
+		L += t
+		x *= z
+	}
+
+	fmt.Println("FloatLn:", L)
+	assert.Equal(t, float64(1), L)
+}
+
 func TestGimel_Ln(t *testing.T) {
 	assert.Equal(t, "0", gen(false, 1, 0).Ln().Text(0))
 }
 
 func TestGimel_Log10(t *testing.T) {
-	fmt.Println("==================================")
-	assert.Equal(t, "1", gen(false, 10, 0).Log10().Text(0))
-	fmt.Println("==================================")
-	assert.Equal(t, "2", gen(false, 100, 0).Log10().Text(0))
-	fmt.Println("==================================")
-	assert.Equal(t, "3", gen(false, 1000, 0).Log10().Text(0))
+	a := gen(false, 1, 1)
+	a.Precision(big.NewInt(100))
+	fmt.Println(a.digits)
+	fmt.Println(a.Log10().Text(0))
+	assert.Equal(t, "1", gen(false, 1, 1).Log10().Text(0))
+	assert.Equal(t, "2", gen(false, 1, 2).Log10().Text(0))
+	assert.Equal(t, "3", gen(false, 1, 3).Log10().Text(0))
 }

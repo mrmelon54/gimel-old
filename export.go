@@ -1,25 +1,68 @@
 package gimel
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 )
 
 // BigInt returns the big.Int representing the full Gimel number
 func (g Gimel) BigInt() *big.Int {
+	var a big.Int
+	g.BigFloat().Int(&a)
+	return &a
+}
+
+// BigFloat returns the big.Float representing the full Gimel number
+func (g Gimel) BigFloat() *big.Float {
+	// shortcut for 0^±x
 	if g.digits.Sign() == 0 {
-		return big.NewInt(0)
+		return big.NewFloat(0)
 	}
-	var c big.Int
-	c.Sub(g.exp, g.prec)
-	c.Add(&c, oneValue)
-	var d big.Int
-	d.Exp(tenValue, &c, nil)
-	d.Mul(&d, g.digits)
+
+	// shortcut for ±x^0
+	if g.exp.Sign() == 0 {
+		if g.neg {
+			return big.NewFloat(-1)
+		}
+		return big.NewFloat(1)
+	}
+
+	shiftDigits := g.getFloatShiftedDigits()
+	fmt.Println("shiftDigits:", shiftDigits.String(), "orig:", g.digits.String(), "prec:", g.prec)
+	{
+		// shift by exponent
+		var c big.Int
+		c.Exp(tenValue, g.exp, nil)
+		var d big.Float
+		d.SetInt(&c)
+		fmt.Println(d.String())
+		switch d.Sign() {
+		case 1:
+			shiftDigits.Mul(shiftDigits, &d)
+		case -1:
+			shiftDigits.Mul(shiftDigits, &d)
+		}
+	}
 	if g.neg {
-		d.Neg(&d)
+		shiftDigits.Neg(shiftDigits)
 	}
-	return &d
+	return shiftDigits
+}
+
+// getFloatShiftedDigits converts to digits 12300 (5 prec) format => 1.23 (as *big.Float)
+func (g Gimel) getFloatShiftedDigits() *big.Float {
+	var (
+		shiftDigits, d, e big.Float
+		c1, c2            big.Int
+	)
+	c1.Set(g.prec)
+	c1.Sub(&c1, oneValue)
+	c2.Exp(tenValue, &c1, nil)
+	d.SetInt(&c2)
+	e.SetInt(g.digits)
+	shiftDigits.Quo(&e, &d)
+	return &shiftDigits
 }
 
 // String is just an alias for TextE for the Stringer interface
