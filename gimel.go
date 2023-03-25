@@ -15,6 +15,17 @@ func strToBigInt(s string) *big.Int {
 	return &a
 }
 
+func GG(neg bool, digits, exp *big.Int) func(prec *big.Int) Gimel {
+	var a, b big.Int
+	a.Set(digits)
+	b.Set(exp)
+	return func(prec *big.Int) Gimel {
+		var c big.Int
+		c.Set(prec)
+		return G(neg, &a, &b, &c)
+	}
+}
+
 const (
 	_EulerDigits = "2718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427"
 	_PiDigits    = "3141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067"
@@ -31,6 +42,9 @@ var (
 	zeroValueF = big.NewFloat(0)
 	oneValueF  = big.NewFloat(1)
 	twoValueF  = big.NewFloat(2)
+
+	oneValueG = GG(false, oneValue, zeroValue)
+	twoValueG = GG(false, twoValue, zeroValue)
 
 	Euler = G(false, strToBigInt(_EulerDigits), big.NewInt(0), big.NewInt(100))
 	Pi    = G(false, strToBigInt(_PiDigits), big.NewInt(0), big.NewInt(100))
@@ -238,6 +252,20 @@ func (g Gimel) IsPos() bool { return !g.neg }
 
 // IsNeg returns true if the sign is negative
 func (g Gimel) IsNeg() bool { return g.neg }
+
+// Sign returns
+// -1 if x <  0
+//  0 if x == 0
+// +1 if x >  0
+func (g Gimel) Sign() int {
+	if g.neg {
+		return -1
+	}
+	if g.digits.Sign() == 0 {
+		return 0
+	}
+	return 1
+}
 
 // shiftToLineUpDigits is an internal function to shift the digits to line up for add/subtract operations
 func (g Gimel) shiftToLineUpDigits(o Gimel) (d1, d2, exp, prec *big.Int) {
@@ -461,3 +489,27 @@ func (g Gimel) Pow(e Gimel, m *Gimel) Gimel {
 // Exp returns e^g where e is Euler's number
 // precision maxes out at the precision of Euler's number.
 func (g Gimel) Exp() Gimel { return Euler.Pow(g, nil) }
+
+func (g Gimel) FGH(n, stackSize int) Gimel {
+	if n == 0 {
+		return g.Add(oneValueG(g.prec))
+	}
+	if n == 1 {
+		return g.Mul(twoValueG(g.prec))
+	}
+
+	return Gimel{}
+	//s := stack.NewStack[int](stackSize)
+	//f := func(x Gimel) Gimel { return x.Mul(twoValueG(g.prec)) }
+	//for i := 0; i < n; i++ {
+	//	c.Mul(g)
+	//	g.Add(oneValueG(g.prec))
+	//}
+}
+
+func (g Gimel) FGH2(n int) Gimel {
+	if n == 0 {
+		return g.Add(oneValueG(g.prec))
+	}
+	return g.FGH2(n - 1)
+}

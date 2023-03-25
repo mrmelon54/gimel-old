@@ -132,9 +132,9 @@ func TestGimel_Sub(t *testing.T) {
 }
 
 func TestGimel_Mul(t *testing.T) {
-	assert.Equal(t, gen(false, 15, 16), gen(false, 3, 10).Mul(gen(false, 5, 5)))
-	assert.Equal(t, gen(true, 182, 17), gen(false, 7, 10).Mul(gen(true, 26, 6)))
-	assert.Equal(t, gen(false, 2, 100), gen(false, 1, 100).Mul(gen(false, 2, 0)))
+	assert.Equal(t, "1.5e16", gen(false, 3, 10).Mul(gen(false, 5, 5)).String())
+	assert.Equal(t, "1.82e17", gen(false, 7, 10).Mul(gen(true, 26, 6)).String())
+	assert.Equal(t, "2e100", gen(false, 1, 100).Mul(gen(false, 2, 0)).String())
 }
 
 func TestGimel_Div(t *testing.T) {
@@ -176,4 +176,10 @@ func TestGimel_IsEven(t *testing.T) {
 func TestGimel_Exp(t *testing.T) {
 	assert.Equal(t, gen(false, 1, 0), gen(false, 0, 0).Exp())
 	assert.Equal(t, Euler, gen(false, 1, 0).Exp())
+}
+
+func TestGimel_FGH2(t *testing.T) {
+	assert.Equal(t, "6", gen(false, 5, 0).FGH2(0))
+	assert.Equal(t, "10", gen(false, 5, 0).FGH2(1))
+	assert.Equal(t, "320", gen(false, 5, 0).FGH2(2))
 }
