@@ -3,6 +3,7 @@ package gimel
 import (
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 func strToBigInt(s string) *big.Int {
@@ -12,6 +13,17 @@ func strToBigInt(s string) *big.Int {
 		panic("strToBigInt failed")
 	}
 	return &a
+}
+
+func GG(neg bool, digits, exp *big.Int) func(prec *big.Int) Gimel {
+	var a, b big.Int
+	a.Set(digits)
+	b.Set(exp)
+	return func(prec *big.Int) Gimel {
+		var c big.Int
+		c.Set(prec)
+		return G(neg, &a, &b, &c)
+	}
 }
 
 const (
@@ -31,6 +43,9 @@ var (
 	oneValueF  = big.NewFloat(1)
 	twoValueF  = big.NewFloat(2)
 	tenValueF  = big.NewFloat(10)
+
+	oneValueG = GG(false, oneValue, zeroValue)
+	twoValueG = GG(false, twoValue, zeroValue)
 
 	Euler = G(false, strToBigInt(_EulerDigits), big.NewInt(0), big.NewInt(100))
 	Pi    = G(false, strToBigInt(_PiDigits), big.NewInt(0), big.NewInt(100))
@@ -239,6 +254,20 @@ func (g Gimel) IsPos() bool { return !g.neg }
 // IsNeg returns true if the sign is negative
 func (g Gimel) IsNeg() bool { return g.neg }
 
+// Sign returns
+// -1 if x <  0
+//  0 if x == 0
+// +1 if x >  0
+func (g Gimel) Sign() int {
+	if g.neg {
+		return -1
+	}
+	if g.digits.Sign() == 0 {
+		return 0
+	}
+	return 1
+}
+
 // shiftToLineUpDigits is an internal function to shift the digits to line up for add/subtract operations
 func (g Gimel) shiftToLineUpDigits(o Gimel) (d1, d2, exp, prec *big.Int) {
 	prec = new(big.Int).Set(minBigInt(g.prec, o.prec))
@@ -407,4 +436,94 @@ func (g Gimel) Log(base Gimel) Gimel {
 // Log10 returns the logarithm with base 10. Alias for Log(10)
 func (g Gimel) Log10() Gimel {
 	return g.Log(G(false, big.NewInt(1), big.NewInt(1), g.prec))
+}
+
+// IsInt returns true if the number is an integer (non-decimal)
+func (g Gimel) IsInt() bool {
+	var l big.Int
+	l.Sub(g.exp, g.prec)
+	l.Add(&l, oneValue)
+	// fast check for large exponent values
+	if l.Sign() != -1 {
+		return true
+	}
+
+	// manual digits check required
+	ds := g.digits.String()
+	dl := len(strings.TrimRight(ds, "0"))
+	l.Add(&l, g.prec)
+	if l.Cmp(big.NewInt(int64(dl))) == 0 {
+		return true
+	}
+	return false
+}
+
+// IsEven returns true if the number is even
+func (g Gimel) IsEven() bool {
+	var l big.Int
+	l.Sub(g.exp, g.prec)
+	l.Add(&l, oneValue)
+	switch l.Sign() {
+	case 0:
+		return g.digits.Bit(0) == 1
+	case 1:
+		return true
+	}
+
+	// manual digits check required
+	l.Sub(&l, oneValue)
+	l.Abs(&l)
+	l.Sub(g.prec, &l)
+	ds := strings.NewReader(g.digits.String())
+	for ; l.Sign() == 1; l.Sub(&l, oneValue) {
+		_, _ = ds.ReadByte()
+	}
+	b, _ := ds.ReadByte()
+	switch b {
+	case '0', '2', '4', '6', '8':
+		return true
+	}
+	return false
+}
+
+// Pow returns g^e mod m, with precision of g.
+func (g Gimel) Pow(e Gimel, m *Gimel) Gimel {
+	var result, mod *big.Int
+	if m != nil {
+		mod = m.BigInt()
+	}
+	result.Exp(g.BigInt(), e.BigInt(), mod)
+	a, ok := FromBigInt(result, g.prec)
+	if !ok {
+		panic("failed to parse big int")
+	}
+	return a
+}
+
+// Exp returns e^g where e is Euler's number
+// precision maxes out at the precision of Euler's number.
+func (g Gimel) Exp() Gimel { return Euler.Pow(g, nil) }
+
+func (g Gimel) FGH(n, stackSize int) Gimel {
+	if n == 0 {
+		return g.Add(oneValueG(g.prec))
+	}
+	if n == 1 {
+		return g.Mul(twoValueG(g.prec))
+	}
+
+	return Gimel{}
+	//s := stack.NewStack[int](stackSize)
+	//f := func(x Gimel) Gimel { return x.Mul(twoValueG(g.prec)) }
+	//for i := 0; i < n; i++ {
+	//	c.Mul(g)
+	//	g.Add(oneValueG(g.prec))
+	//}
+}
+
+func (g Gimel) FGH2(n int) Gimel {
+	if n == 0 {
+		return g.Add(oneValueG(g.prec))
+	}
+	return g.FGH2(n - 1)
 }
