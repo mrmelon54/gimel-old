@@ -43,8 +43,9 @@ var (
 	oneValueF  = big.NewFloat(1)
 	twoValueF  = big.NewFloat(2)
 
-	oneValueG = GG(false, oneValue, zeroValue)
-	twoValueG = GG(false, twoValue, zeroValue)
+	zeroValueG = GG(false, zeroValue, zeroValue)
+	oneValueG  = GG(false, oneValue, zeroValue)
+	twoValueG  = GG(false, twoValue, zeroValue)
 
 	Euler = G(false, strToBigInt(_EulerDigits), big.NewInt(0), big.NewInt(100))
 	Pi    = G(false, strToBigInt(_PiDigits), big.NewInt(0), big.NewInt(100))
@@ -490,26 +491,12 @@ func (g Gimel) Pow(e Gimel, m *Gimel) Gimel {
 // precision maxes out at the precision of Euler's number.
 func (g Gimel) Exp() Gimel { return Euler.Pow(g, nil) }
 
-func (g Gimel) FGH(n, stackSize int) Gimel {
+// FGH returns some magic numbers following this equation
+// f_n(x) = f_n-1(x) with x layers
+func (g Gimel) FGH(n int) Gimel {
 	if n == 0 {
 		return g.Add(oneValueG(g.prec))
 	}
-	if n == 1 {
-		return g.Mul(twoValueG(g.prec))
-	}
-
-	return Gimel{}
-	//s := stack.NewStack[int](stackSize)
-	//f := func(x Gimel) Gimel { return x.Mul(twoValueG(g.prec)) }
-	//for i := 0; i < n; i++ {
-	//	c.Mul(g)
-	//	g.Add(oneValueG(g.prec))
-	//}
-}
-
-func (g Gimel) FGH2(n int) Gimel {
-	if n == 0 {
-		return g.Add(oneValueG(g.prec))
-	}
-	return g.FGH2(n - 1)
+	i := g.Add(zeroValueG(g.prec))
+	return g.FGH(n - 1)
 }

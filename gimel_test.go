@@ -133,7 +133,7 @@ func TestGimel_Sub(t *testing.T) {
 
 func TestGimel_Mul(t *testing.T) {
 	assert.Equal(t, "1.5e16", gen(false, 3, 10).Mul(gen(false, 5, 5)).String())
-	assert.Equal(t, "1.82e17", gen(false, 7, 10).Mul(gen(true, 26, 6)).String())
+	assert.Equal(t, "-1.82e17", gen(false, 7, 10).Mul(gen(true, 26, 6)).String())
 	assert.Equal(t, "2e100", gen(false, 1, 100).Mul(gen(false, 2, 0)).String())
 }
 
