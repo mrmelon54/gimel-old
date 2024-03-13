@@ -415,8 +415,6 @@ func (g Gimel) Log(base Gimel) Gimel {
 	if g.neg {
 		panic("Cannot take log of negative Gimel number")
 	}
-	fmt.Println(g.Ln())
-	fmt.Println(base.Ln())
 	return g.Ln().Div(base.Ln())
 }
 
@@ -479,6 +477,7 @@ func (g Gimel) Pow(e Gimel, m *Gimel) Gimel {
 	if m != nil {
 		mod = m.BigInt()
 	}
+	result = big.NewInt(0)
 	result.Exp(g.BigInt(), e.BigInt(), mod)
 	a, ok := FromBigInt(result, g.prec)
 	if !ok {
@@ -498,5 +497,6 @@ func (g Gimel) FGH(n int) Gimel {
 		return g.Add(oneValueG(g.prec))
 	}
 	i := g.Add(zeroValueG(g.prec))
+	_ = i
 	return g.FGH(n - 1)
 }
